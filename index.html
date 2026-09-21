@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nawi Web – Das interaktive Periodensystem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg1: #0a0d1a;
+        --bg2: #131834;
+        --card-bg: #12162a;
+        --card-bg-2: #171d38;
+        --accent: #2bc4a0;
+        --accent-soft: rgba(43, 196, 160, 0.18);
+        --amber: #f2b656;
+        --electron: #56c9e8;
+        --text: #eef0f8;
+        --muted: #8891ab;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        background: radial-gradient(circle at 50% -10%, #1c2452, var(--bg1) 65%);
+        background-attachment: fixed;
+        color: var(--text);
+        font-family: 'Exo 2', 'Segoe UI', Arial, sans-serif;
+        padding: 15px;
+        text-align: center;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+    /* ---------- Hintergrund ---------- */
+    .glow { position: fixed; border-radius: 50%; filter: blur(90px); pointer-events: none; z-index: 0; opacity: .13; }
+    .glow-a { width: 520px; height: 520px; background: var(--accent); top: -180px; left: -140px; animation: drift 26s ease-in-out infinite alternate; }
+    .glow-b { width: 460px; height: 460px; background: var(--electron); bottom: -200px; right: -140px; animation: drift 32s ease-in-out infinite alternate-reverse; }
+    @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(70px,50px) scale(1.15); } }
+    .dots {
+        position: fixed; inset: 0;
+        background-image: radial-gradient(rgba(136,145,171,.13) 1px, transparent 1px);
+        background-size: 34px 34px; pointer-events: none; z-index: 0;
+        -webkit-mask-image: radial-gradient(circle at 50% 30%, #000 30%, transparent 85%);
+        mask-image: radial-gradient(circle at 50% 30%, #000 30%, transparent 85%);
+    }
+    header, nav, main, footer { position: relative; z-index: 1; }
+
+    /* ---------- Header ---------- */
+    h1 {
+        color: var(--accent);
+        font-size: clamp(2.3rem, 6vw, 3.4rem);
+        font-weight: 800; letter-spacing: .1em;
+        text-shadow: 0 0 26px rgba(43,196,160,.4);
+        margin-top: 8px;
+        animation: fadeDown .6s ease both;
+    }
+    .subtitle {
+        font-family: 'Roboto Mono', monospace;
+        color: var(--muted); font-size: .8rem;
+        letter-spacing: .35em; text-transform: uppercase;
+        margin-top: 6px; animation: fadeDown .6s .08s ease both;
+    }
+    .meta {
+        font-family: 'Roboto Mono', monospace;
+        font-size: .7rem; color: var(--electron);
+        letter-spacing: .18em; margin-top: 12px;
+        animation: fadeDown .6s .14s ease both;
+    }
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+
+    /* ---------- Navigation ---------- */
+    nav { margin: 20px auto 14px; max-width: 1150px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    .chip {
+        font-family: 'Roboto Mono', monospace; font-size: .7rem; letter-spacing: .04em;
+        color: var(--muted); background: var(--card-bg);
+        border: 1px solid rgba(136,145,171,.25); border-radius: 999px;
+        padding: 7px 13px; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 7px;
+        transition: transform .18s ease, border-color .18s ease, color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+    .chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--c, var(--muted)); box-shadow: 0 0 8px var(--c, transparent); }
+    .chip:hover { transform: translateY(-2px); color: var(--text); border-color: var(--c, var(--muted)); }
+    .chip.on { color: var(--text); background: var(--card-bg-2); border-color: var(--c, var(--accent)); box-shadow: 0 4px 16px -6px var(--c, var(--accent)); }
+    .search { position: relative; width: min(430px, 92vw); }
+    .search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; }
+    .search input {
+        width: 100%; background: var(--card-bg); border: 1px solid rgba(136,145,171,.25);
+        border-radius: 999px; padding: 11px 18px 11px 40px; color: var(--text);
+        font-family: 'Exo 2', sans-serif; font-size: .92rem; outline: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .search input::placeholder { color: var(--muted); }
+    .search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .hint { font-family: 'Roboto Mono', monospace; font-size: .68rem; color: var(--muted); letter-spacing: .05em; min-height: 1em; }
+
+    /* ---------- Periodensystem ---------- */
+    #table-wrap { max-width: 1150px; margin: 0 auto; overflow-x: auto; padding: 6px 2px 12px; scrollbar-width: thin; scrollbar-color: var(--card-bg-2) transparent; }
+    #ptable { display: grid; grid-template-columns: repeat(18, minmax(52px, 1fr)); gap: 5px; min-width: 960px; }
+    .cell {
+        position: relative; aspect-ratio: 1;
+        background: linear-gradient(160deg, #1a2040, #10142a);
+        border: 1px solid rgba(43,196,160,.4);
+        border-radius: 8px; padding: 5px 4px 4px; cursor: pointer;
+        text-align: center; color: var(--text); font-family: 'Exo 2', sans-serif;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: transform .15s ease, box-shadow .2s ease, opacity .3s ease, filter .3s ease;
+        animation: popIn .5s ease both; animation-delay: calc(var(--i) * 12ms);
+    }
+    @keyframes popIn { from { opacity: 0; transform: translateY(10px) scale(.9); } to { opacity: 1; transform: none; } }
+    .cell:hover, .cell:focus-visible {
+        transform: translateY(-2px) scale(1.1); z-index: 3; outline: none;
+        box-shadow: 0 0 14px rgba(43,196,160,.55), 0 8px 22px -8px rgba(0,0,0,.6);
+        border-color: var(--accent);
+    }
+    .cell:active { transform: scale(.95); }
+    .cell .num { position: absolute; top: 3px; left: 5px; font-family: 'Roboto Mono', monospace; font-size: .56rem; color: var(--muted); font-style: normal; }
+    .cell .sym { font-size: 1.3rem; font-weight: 800; line-height: 1.05; color: var(--accent); }
+    .cell .nm { font-size: .5rem; color: var(--muted); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cell.off { opacity: .08; filter: saturate(.1); transform: scale(.92); pointer-events: none; }
+    @media (max-width: 600px) { .cell .nm { display: none; } .cell .sym { font-size: 1rem; } .cell .num { font-size: .48rem; } }
+
+    footer { max-width: 900px; margin: 22px auto 6px; color: var(--muted); font-size: .74rem; line-height: 1.7; }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ---------- Overlay + Modal (Info-Karte) ---------- */
+    #overlay {
+        position: fixed; inset: 0; background: rgba(6,8,18,.78);
+        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+        display: flex; align-items: center; justify-content: center; padding: 16px;
+        z-index: 50; opacity: 0; pointer-events: none; transition: opacity .25s ease;
+    }
+    #overlay.open { opacity: 1; pointer-events: auto; }
+    .modal {
+        width: min(640px, 96vw); max-height: 92vh; overflow-y: auto;
+        background: linear-gradient(170deg, var(--card-bg-2), var(--card-bg));
+        border: 1px solid rgba(43,196,160,.25); border-radius: 14px;
+        box-shadow: 0 30px 80px -20px rgba(0,0,0,.7), 0 0 24px rgba(43,196,160,.12);
+        text-align: left; transform: translateY(22px) scale(.96);
+        transition: transform .3s cubic-bezier(.2,.9,.3,1.2);
+        scrollbar-width: thin; scrollbar-color: var(--card-bg-2) transparent;
+    }
+    #overlay.open .modal { transform: none; }
+    .m-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 0; position: sticky; top: 0; background: linear-gradient(var(--card-bg-2), rgba(23,29,56,.92) 70%, transparent); z-index: 4; }
+    .m-head h2 { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+    .m-close {
+        width: 34px; height: 34px; border-radius: 50%;
+        border: 1px solid rgba(136,145,171,.3); background: var(--card-bg);
+        color: var(--muted); font-size: 1rem; cursor: pointer;
+        transition: transform .18s ease, color .18s ease, border-color .18s ease;
+    }
+    .m-close:hover { transform: rotate(90deg); color: var(--text); border-color: var(--amber); }
+    .m-body { display: flex; flex-direction: row-reverse; gap: 20px; padding: 16px 22px 6px; align-items: flex-start; }
+    .m-visual { flex: 0 0 170px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .el-img {
+        width: 110px; height: 110px; border-radius: 50%;
+        border: 2px solid rgba(43,196,160,.55); overflow: hidden;
+        background: radial-gradient(circle at 35% 30%, #1d2547, #10142a);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 0 18px rgba(43,196,160,.25);
+        position: relative;
+    }
+    .el-img img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity .5s ease; }
+    .el-img img.loaded { opacity: 1; }
+    .el-img .fb { font-size: 2rem; font-weight: 800; color: var(--accent); }
+    .vbtn {
+        width: 100%; font-family: 'Exo 2', sans-serif; font-size: .85rem; font-weight: 600;
+        color: var(--text); background: var(--card-bg);
+        border: 1px solid rgba(43,196,160,.35); border-radius: 9px;
+        padding: 9px 10px; cursor: pointer;
+        transition: transform .15s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .vbtn:hover { transform: translateY(-2px); border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 6px 18px -8px var(--accent); }
+    .vbtn.facts { border-color: rgba(242,182,86,.4); }
+    .vbtn.facts:hover { border-color: var(--amber); background: rgba(242,182,86,.12); box-shadow: 0 6px 18px -8px var(--amber); }
+
+    .m-info { flex: 1; min-width: 0; }
+    .subline { font-family: 'Roboto Mono', monospace; font-size: .78rem; color: var(--muted); letter-spacing: .05em; margin-bottom: 12px; }
+    .subline b { color: var(--electron); font-weight: 500; }
+
+    /* ---------- Teilchen-Panel (alles in einem Button) ---------- */
+    .t-btn {
+        width: 100%; font-family: 'Roboto Mono', monospace; font-size: .74rem; letter-spacing: .06em;
+        color: var(--accent); background: var(--accent-soft);
+        border: 1px solid rgba(43,196,160,.4); border-radius: 9px;
+        padding: 10px 12px; cursor: pointer;
+        transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .t-btn:hover { transform: translateY(-1px); background: rgba(43,196,160,.28); box-shadow: 0 6px 18px -10px var(--accent); }
+    .t-pop {
+        display: none; margin-top: 10px;
+        background: linear-gradient(160deg, var(--card-bg-2), var(--card-bg));
+        border: 1px solid rgba(43,196,160,.4); border-radius: 12px;
+        padding: 14px 15px;
+        box-shadow: 0 14px 34px -12px rgba(0,0,0,.7);
+        animation: slideUp .28s ease both;
+    }
+    .t-pop.show { display: block; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .t-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+    .t-tile {
+        background: var(--card-bg); border: 1px solid rgba(136,145,171,.2);
+        border-radius: 9px; padding: 9px 6px; text-align: center;
+        transition: transform .18s ease, border-color .2s ease;
+    }
+    .t-tile:hover { transform: translateY(-2px); }
+    .t-tile b { display: block; font-size: 1.15rem; font-weight: 800; }
+    .t-tile span { font-family: 'Roboto Mono', monospace; font-size: .56rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; }
+    .t-tile .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .t-row {
+        display: flex; align-items: baseline; gap: 9px;
+        font-size: .8rem; line-height: 1.5; padding: 6px 0;
+        border-top: 1px dashed rgba(136,145,171,.2);
+    }
+    .t-row .lbl {
+        font-family: 'Roboto Mono', monospace; font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
+        color: var(--electron); flex: 0 0 92px;
+    }
+    .t-row b { font-weight: 600; }
+    .t-nuclid { font-size: 1.05rem; font-weight: 800; color: var(--amber); letter-spacing: .04em; }
+    .t-nuclid sup { font-size: .68em; }
+    .t-nuclid sub { font-size: .68em; }
+
+    .fu-row {
+        background: var(--card-bg); border: 1px solid rgba(136,145,171,.16);
+        border-radius: 10px; padding: 9px 12px; margin-top: 8px;
+        font-size: .82rem; line-height: 1.45; display: flex; gap: 9px; align-items: baseline;
+    }
+    .fu-row .lbl {
+        font-family: 'Roboto Mono', monospace; font-size: .6rem; letter-spacing: .1em;
+        text-transform: uppercase; color: var(--amber);
+        border: 1px solid rgba(242,182,86,.35); border-radius: 5px; padding: 2px 6px;
+        flex: 0 0 auto;
+    }
+    .more-links { font-family: 'Roboto Mono', monospace; font-size: .66rem; color: var(--muted); margin: 10px 0 2px; letter-spacing: .04em; }
+    .more-links a { color: var(--electron); text-decoration: none; }
+    .more-links a:hover { text-decoration: underline; }
+    .m-nav { display: flex; justify-content: space-between; gap: 10px; padding: 12px 22px 20px; }
+    .m-nav button {
+        font-family: 'Roboto Mono', monospace; font-size: .7rem; letter-spacing: .06em;
+        color: var(--muted); background: var(--card-bg);
+        border: 1px solid rgba(136,145,171,.22); border-radius: 8px;
+        padding: 9px 14px; cursor: pointer;
+        transition: color .2s ease, border-color .2s ease, transform .15s ease;
+    }
+    .m-nav button:hover { color: var(--accent); border-color: var(--accent); transform: translateY(-2px); }
+
+    /* ---------- Atommodell ---------- */
+    .atom-box { display: none; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 12px; animation: slideUp .3s ease both; }
+    .atom-box.show { display: flex; }
+    .atom-stage { position: relative; width: 170px; height: 170px; }
+    .atom-stage canvas { display: block; cursor: pointer; }
+    .atom-stage svg { position: absolute; inset: 0; width: 170px; height: 170px; pointer-events: none; }
+    .atom-stage svg line { stroke: rgba(136,145,171,.65); stroke-width: 1; stroke-dasharray: 3 3; }
+    .atom-tip {
+        position: absolute; top: 2px; right: -8px;
+        background: var(--card-bg-2); border: 1px solid rgba(43,196,160,.45);
+        border-radius: 9px; padding: 8px 11px; font-family: 'Roboto Mono', monospace;
+        font-size: .68rem; box-shadow: 0 10px 26px -10px rgba(0,0,0,.7);
+        animation: slideUp .25s ease both; white-space: nowrap;
+    }
+    .atom-tip p { display: flex; align-items: center; gap: 7px; padding: 2px 0; }
+    .atom-tip .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .atom-hint { font-family: 'Roboto Mono', monospace; font-size: .62rem; color: var(--muted); letter-spacing: .05em; }
+    .pause-btn {
+        font-family: 'Roboto Mono', monospace; font-size: .64rem; letter-spacing: .08em;
+        color: var(--muted); background: var(--card-bg);
+        border: 1px solid rgba(136,145,171,.25); border-radius: 999px;
+        padding: 6px 13px; cursor: pointer; transition: color .2s ease, border-color .2s ease;
+    }
+    .pause-btn:hover { color: var(--text); border-color: var(--electron); }
+
+    /* ---------- Vollbild-Seiten (Fakten / Detail / Foto) ---------- */
+    .page {
+        position: fixed; inset: 0; z-index: 60;
+        background: radial-gradient(circle at 50% -10%, #1c2452, var(--bg1) 65%);
+        overflow-y: auto; padding: 22px 16px 60px;
+        display: none;
+    }
+    .page.show { display: block; animation: pageIn .35s ease both; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+    .page-inner { max-width: 640px; margin: 0 auto; }
+    .pg-head { display: flex; align-items: center; gap: 16px; margin: 10px 0 22px; flex-wrap: wrap; }
+    .back {
+        font-family: 'Roboto Mono', monospace; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+        color: var(--muted); background: var(--card-bg); border: 1px solid rgba(136,145,171,.25);
+        border-radius: 999px; padding: 8px 15px; cursor: pointer;
+        transition: color .2s ease, border-color .2s ease, transform .2s ease;
+    }
+    .back:hover { color: var(--text); border-color: var(--accent); transform: translateX(-3px); }
+    .pg-sym {
+        width: 62px; height: 62px; border-radius: 12px;
+        background: linear-gradient(160deg, #1a2040, #10142a);
+        border: 1px solid rgba(43,196,160,.5);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem; font-weight: 800; color: var(--accent);
+        box-shadow: 0 0 16px rgba(43,196,160,.2);
+    }
+    .pg-head h2 { font-size: 1.7rem; font-weight: 800; }
+    .pg-head .pg-sub { font-family: 'Roboto Mono', monospace; font-size: .68rem; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; }
+
+    .fact-card {
+        display: flex; align-items: center; gap: 14px; width: 100%;
+        text-align: left; font-family: 'Exo 2', sans-serif; color: var(--text);
+        background: linear-gradient(140deg, var(--card-bg-2), var(--card-bg));
+        border: 1px solid rgba(43,196,160,.22); border-radius: 12px;
+        padding: 16px 18px; margin-bottom: 12px; cursor: pointer; font-size: .95rem; line-height: 1.5;
+        transition: transform .18s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .fact-card:hover { transform: translateX(6px); border-color: var(--accent); box-shadow: 0 10px 26px -12px rgba(43,196,160,.5); }
+    .fact-card .fico {
+        flex: 0 0 34px; height: 34px; border-radius: 50%;
+        background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    }
+    .fact-card .arr { margin-left: auto; color: var(--accent); font-weight: 600; transition: transform .2s ease; flex: 0 0 auto; }
+    .fact-card:hover .arr { transform: translate(3px, -3px); }
+    .fact-card.daily { border-color: rgba(242,182,86,.45); background: linear-gradient(140deg, rgba(242,182,86,.1), var(--card-bg)); }
+    .fact-card.daily:hover { border-color: var(--amber); box-shadow: 0 10px 26px -12px rgba(242,182,86,.5); }
+    .fact-card.daily .fico { background: rgba(242,182,86,.18); }
+    .fact-card.daily .arr { color: var(--amber); }
+    .fact-card .tag {
+        display: block; font-family: 'Roboto Mono', monospace; font-size: .58rem;
+        letter-spacing: .16em; text-transform: uppercase; color: var(--amber); margin-bottom: 4px;
+    }
+    .fact-card p { display: inline; }
+
+    /* Detailseite */
+    .detail-card {
+        background: linear-gradient(160deg, var(--card-bg-2), var(--card-bg));
+        border: 1px solid rgba(43,196,160,.25); border-radius: 14px;
+        padding: 24px 26px; text-align: left;
+        box-shadow: 0 24px 60px -24px rgba(0,0,0,.7);
+    }
+    .d-label { font-family: 'Roboto Mono', monospace; font-size: .62rem; letter-spacing: .3em; text-transform: uppercase; color: var(--amber); margin-bottom: 8px; }
+    .d-fact { font-size: 1.3rem; font-weight: 800; line-height: 1.4; color: var(--text); margin-bottom: 18px; border-left: 3px solid var(--accent); padding-left: 14px; }
+    .d-title { font-size: 1.05rem; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    .d-text { font-size: .95rem; line-height: 1.7; color: var(--text); white-space: pre-line; }
+    .d-src { font-family: 'Roboto Mono', monospace; font-size: .66rem; color: var(--muted); margin-top: 18px; padding-top: 12px; border-top: 1px dashed rgba(136,145,171,.25); letter-spacing: .04em; }
+    .d-src a { color: var(--electron); text-decoration: none; }
+    .d-src a:hover { text-decoration: underline; }
+
+    /* Fotoseite */
+    .photo-title { font-size: 2rem; font-weight: 800; color: var(--accent); margin: 14px 0 8px; }
+    .obj-chip {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: 'Roboto Mono', monospace; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
+        color: var(--text); background: var(--accent-soft);
+        border: 1px solid rgba(43,196,160,.45); border-radius: 999px; padding: 6px 14px; margin-bottom: 18px;
+    }
+    .ph-frame {
+        border-radius: 12px; overflow: hidden; position: relative;
+        border: 1px solid rgba(136,145,171,.25); background: var(--card-bg);
+    }
+    .ph-frame .shimmer { position: absolute; inset: 0; background: linear-gradient(100deg, var(--card-bg) 30%, var(--card-bg-2) 50%, var(--card-bg) 70%); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+    @keyframes shimmer { from { background-position: 120% 0; } to { background-position: -80% 0; } }
+    .ph-frame img { display: block; width: 100%; height: 340px; object-fit: cover; position: relative; z-index: 1; opacity: 0; transform: scale(1.04); transition: opacity .5s ease, transform .6s ease; }
+    .ph-frame img.loaded { opacity: 1; transform: scale(1); }
+    .ph-fail { display: none; padding: 40px 20px; text-align: center; color: var(--muted); font-size: .85rem; position: relative; z-index: 1; }
+    .ph-fail a { color: var(--electron); }
+    .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .duo .ph-frame img { height: 260px; }
+    .photo-cap { font-size: 1.02rem; line-height: 1.55; margin: 16px 2px 4px; text-align: left; color: var(--text); border-left: 3px solid var(--accent); padding-left: 12px; }
+    .src {
+        margin-top: 14px; background: var(--card-bg); border: 1px dashed rgba(136,145,171,.3);
+        border-radius: 10px; padding: 11px 14px; text-align: left;
+        font-family: 'Roboto Mono', monospace; font-size: .64rem; line-height: 1.8; color: var(--muted); word-break: break-word;
+    }
+    .src a { color: var(--electron); text-decoration: none; }
+    .src a:hover { text-decoration: underline; }
+    .src .lic { color: var(--amber); }
+
+    ::-webkit-scrollbar { height: 8px; width: 8px; }
+    ::-webkit-scrollbar-thumb { background: var(--card-bg-2); border-radius: 8px; }
+
+    @media (max-width: 640px) {
+        .m-body { flex-direction: column; align-items: center; }
+        .m-visual { width: 100%; flex: auto; }
+        .vbtn { width: auto; flex: 1; }
+        .btn-row { display: flex; gap: 10px; width: 100%; }
+        .m-info { width: 100%; text-align: left; }
+        .t-grid { grid-template-columns: 1fr 1fr 1fr; }
+        .t-row .lbl { flex-basis: 78px; }
+        .pg-head h2 { font-size: 1.4rem; }
+        .photo-title { font-size: 1.6rem; }
+        .duo { grid-template-columns: 1fr; }
+        .duo .ph-frame img { height: 220px; }
+        .ph-frame img { height: 260px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+</style>
+</head>
+<body>
+
+<div class="glow glow-a"></div>
+<div class="glow glow-b"></div>
+<div class="dots"></div>
+
+<header>
+    <h1>Nawi Web ⚛️</h1>
+    <p class="subtitle">Das interaktive Periodensystem</p>
+    <p class="meta">36 Elemente · Periode 1–4 · Wasserstoff bis Krypton</p>
+</header>
+
+<nav>
+    <div class="chips" id="chips"></div>
+    <div class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        <input id="q" type="text" placeholder="Suchen … Name, Symbol, Zahl oder Kategorie (z. B. Kupfer, Fe, 26, Edelgas)" autocomplete="off">
+    </div>
+    <p class="hint" id="hint">Tipp: Klicke auf ein Element – Atommodell, Teilchen und Fakten sind einen Klick entfernt.</p>
+</nav>
+
+<main id="table-wrap">
+    <div id="ptable"></div>
+</main>
+
+<footer>
+    Quellen: <a href="https://www.rsc.org/periodic-table/" target="_blank" rel="noopener">Royal Society of Chemistry</a> ·
+    <a href="https://iupac.org/" target="_blank" rel="noopener">IUPAC</a> ·
+    Fotos: <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>
+</footer>
+
+<!-- ============ Info-Karte (Modal) ============ -->
+<div id="overlay" role="dialog" aria-modal="true">
+    <div class="modal" id="modal">
+        <div class="m-head">
+            <h2 id="e-name"></h2>
+            <button class="m-close" id="close" aria-label="Schließen">✕</button>
+        </div>
+        <div class="m-body">
+            <div class="m-visual">
+                <div class="el-img" id="el-img-box"><span class="fb" id="el-img-fb"></span><img id="el-img" alt=""></div>
+                <div class="btn-row" style="display:flex;flex-direction:column;gap:10px;width:100%;">
+                    <button class="vbtn" id="btn-atom">⚛️ Atommodell</button>
+                    <button class="vbtn facts" id="btn-facts">🎓 Fakten</button>
+                </div>
+            </div>
+            <div class="m-info">
+                <p class="subline" id="subline"></p>
+
+                <div class="atom-box" id="atom-box">
+                    <div class="atom-stage" id="atom-stage">
+                        <canvas id="atom-canvas" width="170" height="170"></canvas>
+                        <svg id="atom-svg" viewBox="0 0 170 170" style="display:none;"><line x1="85" y1="85" x2="120" y2="30"></line></svg>
+                        <div class="atom-tip" id="atom-tip" style="display:none;"></div>
+                    </div>
+                    <p class="atom-hint">Tippe auf den Kern für Details</p>
+                    <button class="pause-btn" id="btn-pause">⏸ Pause</button>
+                </div>
+
+                <button class="t-btn" id="btn-teilchen">⚛️ Teilchen &amp; Schalen anzeigen</button>
+                <div class="t-pop" id="t-pop"></div>
+
+                <div class="fu-row"><span class="lbl">Vorkommen</span><span id="fu-found"></span></div>
+                <div class="fu-row"><span class="lbl">Verwendung</span><span id="fu-uses"></span></div>
+                <p class="more-links" id="more-links"></p>
+                <p class="more-links" style="color:var(--muted);">Mehr zu Vorkommen &amp; Verwendung unter „🎓 Fakten”</p>
+            </div>
+        </div>
+        <div class="m-nav">
+            <button id="prev">← Zurück</button>
+            <button id="next">Weiter →</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ Fakten-Seite ============ -->
+<div class="page" id="page-facts">
+    <div class="page-inner">
+        <div class="pg-head">
+            <button class="back" onclick="history.back()">← Zurück</button>
+            <div class="pg-sym" id="fa-sym"></div>
+            <div style="text-align:left;">
+                <h2 id="fa-name"></h2>
+                <p class="pg-sub" id="fa-sub"></p>
+            </div>
+        </div>
+        <div id="fa-list"></div>
+    </div>
+</div>
+
+<!-- ============ Fakten-Detail-Seite ============ -->
+<div class="page" id="page-detail">
+    <div class="page-inner">
+        <div class="pg-head">
+            <button class="back" onclick="history.back()">← Zurück zu den Fakten</button>
+            <div class="pg-sym" id="de-sym"></div>
+            <div style="text-align:left;">
+                <h2 id="de-name"></h2>
+                <p class="pg-sub">Fakt im Detail</p>
+            </div>
+        </div>
+        <div class="detail-card">
+            <p class="d-label">Der Fakt</p>
+            <p class="d-fact" id="de-fact"></p>
+            <p class="d-title" id="de-title"></p>
+            <p class="d-text" id="de-text"></p>
+            <p class="d-src" id="de-src"></p>
+        </div>
+    </div>
+</div>
+
+<!-- ============ Alltagsfoto-Seite ============ -->
+<div class="page" id="page-photo">
+    <div class="page-inner">
+        <div class="pg-head">
+            <button class="back" onclick="history.back()">← Zurück zu den Fakten</button>
+        </div>
+        <h2 class="photo-title" id="ph-name"></h2>
+        <span class="obj-chip" id="ph-obj"></span>
+        <div id="ph-figures"></div>
+        <p class="photo-cap" id="ph-cap"></p>
+        <div class="src" id="ph-src"></div>
+    </div>
+</div>
+
+<script>
+/* ================================================================
+   NAVI WEB · Daten: 36 Elemente (H–Kr), je genau 3 Fakten (A2/B1)
+   Fakt 3 = festes Alltagsbeispiel mit echtem Foto
+   Werte (Massen, Vorkommen, Verwendung, Schalen) = Original-Daten
+   der Website, geprüft. Bilder = Original-Links der Website.
+   ================================================================ */
+const CATS = {
+    nichtmetall: { label: "Nichtmetalle",     color: "#2bc4a0" },
+    edelgas:     { label: "Edelgase",         color: "#56c9e8" },
+    halogen:     { label: "Halogene",         color: "#7fd962" },
+    alkali:      { label: "Alkalimetalle",    color: "#f2b656" },
+    erdalkali:   { label: "Erdalkalimetalle", color: "#ef8a5e" },
+    uebergang:   { label: "Übergangsmetalle", color: "#6f9df1" },
+    metall:      { label: "Metalle",          color: "#9aa7c7" },
+    halbmetall:  { label: "Halbmetalle",      color: "#a58bf2" }
+};
+
+function img(file, author, lic) {
+    return {
+        file: file, author: author, lic: lic,
+        url:  "https://commons.wikimedia.org/wiki/Special:FilePath/" + encodeURIComponent(file) + "?width=1000",
+        page: "https://commons.wikimedia.org/wiki/File:" + encodeURIComponent(file)
+    };
+}
+
+const ELEMENTS = [
+{ z:1,  sym:"H",  name:"Wasserstoff", mass:"1,008", cat:"nichtmetall", per:1, grp:1,  st:"gasförmig", sh:"1", en:"hydrogen", found:"im Wasser", uses:"Raketentreibstoff",
+  img:"https://upload.wikimedia.org/wikipedia/commons/d/d9/Hydrogenglow.jpg",
+  f1:"Wasserstoff ist das leichteste Element im Periodensystem.",
+  f2:"Wasserstoff ist das häufigste Element im Universum: Fast alle Sterne bestehen daraus.",
+  f3:"In einem Wasserstoff-Bus erzeugt Wasserstoff den Strom für den Motor.",
+  obj:"Wasserstoff-Bus", cap:"An dieser Tankstelle wird Wasserstoff in den Bus gefüllt. Eine Brennstoffzelle macht daraus Strom – hinten kommt nur Wasserdampf heraus.",
+  imgs:[ img("2026.04.01 H2-Busbetankung beschnitten.jpg","Icke68746","CC0") ] },
+
+{ z:2,  sym:"He", name:"Helium", mass:"4,003", cat:"edelgas", per:1, grp:18, st:"gasförmig", sh:"2", en:"helium", found:"in der Luft", uses:"Ballons",
+  img:"https://upload.wikimedia.org/wikipedia/commons/0/00/Helium-glow.jpg",
+  f1:"Helium ist ein Edelgas: Es reagiert fast nie mit anderen Stoffen.",
+  f2:"Helium ist viel leichter als Luft und bleibt bei uns immer ein Gas.",
+  f3:"Helium bringt Partyballons zum Fliegen.",
+  obj:"Partyballon", cap:"Helium ist leichter als Luft. Deshalb steigt der Ballon nach oben.",
+  imgs:[ img("Balloon on a children's birthday party.jpg","Friedrich Haag","CC BY-SA 4.0") ] },
+
+{ z:3,  sym:"Li", name:"Lithium", mass:"6,941", cat:"alkali", per:2, grp:1, st:"fest", sh:"2 / 1", en:"lithium", found:"in Mineralien", uses:"Batterien",
+  img:"https://commons.wikimedia.org/wiki/Special:FilePath/Lithium_(Element_-_3)_2.jpg",
+  f1:"Lithium ist das leichteste Metall im Periodensystem.",
+  f2:"Lithium kann viel Energie in einem Akku speichern.",
+  f3:"In fast jedem Handy steckt ein Akku mit Lithium.",
+  obj:"Handy-Akku", cap:"Der Akku im Handy speichert Strom mit Lithium.",
+  imgs:[ img("Samsung smartphone battery, Hillegersberg, Rotterdam (2022) 08.jpg","Donald Trung Quoc Don","CC BY-SA 4.0") ] },
+
+{ z:4,  sym:"Be", name:"Beryllium", mass:"9,012", cat:"erdalkali", per:2, grp:2, st:"fest", sh:"2 / 2", en:"beryllium", found:"in Mineralien", uses:"Raumfahrt",
+  img:"https://commons.wikimedia.org/wiki/Special:FilePath/Beryllium_nuggets_2.jpg",
+  f1:"Beryllium ist ein sehr leichtes, aber hartes Metall.",
+  f2:"Beryllium verbindet sich gern zu Edelsteinen – zum Beispiel zu Smaragd.",
+  f3:"Der Smaragd ist ein Edelstein mit Beryllium. Er ist grün.",
+  obj:"Smaragd", cap:"Der Smaragd ist grün, weil Beryllium im Stein steckt.",
+  imgs:[ img("Béryl var. émeraude sur gangue (Muzo Mine Boyaca - Colombie) 2.jpg","Géry Parent","CC0") ] },
+
+{ z:5,  sym:"B",  name:"Bor", mass:"10,811", cat:"halbmetall", per:2, grp:13, st:"fest", sh:"2 / 3", en:"boron", found:"in Mineralien", uses:"Glas",
+  img:"https://commons.wikimedia.org/wiki/Special:FilePath/Boron.jpg",
+  f1:"Bor ist ein Halbmetall und kommt in der Natur nie allein vor.",
+  f2:"Bor macht Glas stark gegen Hitze und Stöße.",
+  f3:"Ofenfeste Glasschalen enthalten Bor. Sie bleiben im heißen Ofen heil.",
+  obj:"Ofenfeste Glasschale", cap:"Diese Schale aus Borosilikatglas bleibt im heißen Ofen heil – dank Bor.",
+  imgs:[ img("Pyrex 1-quart liquid measuring cup - DPLA - b07e5efc0a37cf693d74b366a3065c72.jpg","Pyrex (historisch)","Public domain") ] },
+
+{ z:6,  sym:"C",  name:"Kohlenstoff", mass:"12,011", cat:"nichtmetall", per:2, grp:14, st:"fest", sh:"2 / 4", en:"carbon", found:"in Lebewesen", uses:"Stahl",
+  img:"https://upload.wikimedia.org/wikipedia/commons/6/68/Pure_Carbon.png",
+  f1:"Kohlenstoff ist die Grundlage für alles Leben auf der Erde.",
+  f2:"Kohlenstoff hat viele Gesichter: weich als Graphit, hart als Diamant.",
+  f3:"Bleistift und Diamantring: Die Mine ist Graphit, der Stein ein Diamant – beides Kohlenstoff.",
+  obj:"Bleistift & Diamantring", cap:"Die Bleistiftmine und der Stein im Ring bestehen beide aus Kohlenstoff – nur anders angeordnet.",
+  imgs:[ img("Pencil.jpg","per (Norwegen)","CC BY 2.0"), img("Engagement ring.jpg","קוליברי טבעות אירוסין","CC BY-SA 3.0") ] },
+
+{ z:7,  sym:"N",  name:"Stickstoff", mass:"14,007", cat:"nichtmetall", per:2, grp:15, st:"gasförmig", sh:"2 / 5", en:"nitrogen", found:"in der Luft", uses:"Dünger",
+  img:"https://upload.wikimedia.org/wikipedia/commons/2/2d/Nitrogen-glow.jpg",
+  f1:"Stickstoff macht etwa 78 Prozent unserer Luft aus.",
+  f2:"Stickstoff ist ein farb- und geruchloses Gas.",
+  f3:"Beim Unfall füllt Stickstoff den Airbag in Sekundenbruchteilen.",
+  obj:"Airbag", cap:"Der Airbag füllt sich blitzschnell mit Stickstoff und schützt so den Kopf.",
+  imgs:[ img("Deployed dual airbags.jpeg","trnsz","CC BY-SA 3.0") ] },
+
+{ z:8,  sym:"O",  name:"Sauerstoff", mass:"15,999", cat:"nichtmetall", per:2, grp:16, st:"gasförmig", sh:"2 / 6", en:"oxygen", found:"in der Luft", uses:"Atmung",
+  img:"https://upload.wikimedia.org/wikipedia/commons/a/a0/Liquid_oxygen_in_a_beaker_%28cropped_and_retouched%29.jpg",
+  f1:"Ohne Sauerstoff können Menschen und Tiere nicht leben.",
+  f2:"Sauerstoff macht etwa 21 Prozent der Luft aus.",
+  f3:"Im Krankenhaus hilft eine Sauerstoffmaske beim Atmen.",
+  obj:"Sauerstoffmaske", cap:"Über die Sauerstoffmaske bekommt der Mensch Sauerstoff zum Atmen.",
+  imgs:[ img("Simple face mask.jpg","James Heilman, MD","CC BY-SA 4.0") ] },
+
+{ z:9,  sym:"F",  name:"Fluor", mass:"18,998", cat:"halogen", per:2, grp:17, st:"gasförmig", sh:"2 / 7", en:"fluorine", found:"in Mineralien", uses:"Zahnpasta",
+  img:"https://upload.wikimedia.org/wikipedia/commons/2/2c/Fluoro_liquido_a_-196%C2%B0C_1.jpg",
+  f1:"Fluor ist das reaktionsfreudigste Element von allen.",
+  f2:"Reines Fluor ist ein giftiges Gas. In Verbindungen ist es aber nützlich.",
+  f3:"In Zahnpasta ist Fluorid – eine Verbindung mit Fluor. Sie macht die Zähne stark.",
+  obj:"Zahnpasta", cap:"Fluorid in der Zahnpasta schützt die Zähne vor Karies.",
+  imgs:[ img("Toothbrush, Toothpaste, Dental Care (571741).jpg","Steve Buissinne","CC0") ] },
+
+{ z:10, sym:"Ne", name:"Neon", mass:"20,180", cat:"edelgas", per:2, grp:18, st:"gasförmig", sh:"2 / 8", en:"neon", found:"in der Luft", uses:"Leuchtreklamen",
+  img:"https://upload.wikimedia.org/wikipedia/commons/f/f8/Neon-glow.jpg",
+  f1:"Neon ist ein Edelgas und reagiert fast nie.",
+  f2:"Fließt Strom durch Neon, leuchtet es rot-orange.",
+  f3:"Viele Leuchtreklamen leuchten mit Neon.",
+  obj:"Neon-Leuchtreklame", cap:"In den Röhren dieser Leuchtreklame leuchtet das Gas Neon.",
+  imgs:[ img("Neon.JPG","Lestat (Jan Mehlich)","CC BY-SA 3.0") ] },
+
+{ z:11, sym:"Na", name:"Natrium", mass:"22,990", cat:"alkali", per:3, grp:1, st:"fest", sh:"2 / 8 / 1", en:"sodium", found:"im Salz", uses:"Speisesalz",
+  img:"https://upload.wikimedia.org/wikipedia/commons/2/27/Na_%28Sodium%29.jpg",
+  f1:"Natrium ist ein weiches Metall, das man mit dem Messer schneiden kann.",
+  f2:"Reines Natrium reagiert heftig mit Wasser. Gebunden ist es aber harmlos.",
+  f3:"Im Speisesalz ist Natrium – fest verbunden mit Chlor.",
+  obj:"Speisesalz", cap:"Speisesalz besteht aus Natrium und Chlor. Zusammen sind sie ungefährlich.",
+  imgs:[ img("Salt shaker on white background.jpg","Dubravko Sorić","CC BY 2.0") ] },
+
+{ z:12, sym:"Mg", name:"Magnesium", mass:"24,305", cat:"erdalkali", per:3, grp:2, st:"fest", sh:"2 / 8 / 2", en:"magnesium", found:"in der Erde", uses:"Feuerwerk",
+  img:"https://upload.wikimedia.org/wikipedia/commons/3/3f/Magnesium_crystals.jpg",
+  f1:"Magnesium ist ein sehr leichtes Metall.",
+  f2:"Magnesium brennt mit einem gleißend weißen Licht.",
+  f3:"Im Feuerwerk sorgt Magnesium für helle, weiße Funken.",
+  obj:"Feuerwerk", cap:"Magnesium macht das Feuerwerk besonders hell.",
+  imgs:[ img("Fireworks over Ponte Vecchio.JPG","Martin Falbisoner","CC BY-SA 3.0") ] },
+
+{ z:13, sym:"Al", name:"Aluminium", mass:"26,982", cat:"metall", per:3, grp:13, st:"fest", sh:"2 / 8 / 3", en:"aluminium", found:"in der Erdkruste", uses:"Dosen",
+  img:"https://upload.wikimedia.org/wikipedia/commons/3/3e/Aluminium.jpg",
+  f1:"Aluminium ist das häufigste Metall in der Erdkruste.",
+  f2:"Aluminium ist leicht, stabil und rostet nicht.",
+  f3:"Getränkedosen sind aus Aluminium – leicht und gut zu recyceln.",
+  obj:"Getränkedose", cap:"Diese Dosen sind aus Aluminium und deshalb sehr leicht.",
+  imgs:[ img("Beverage cans.jpg","Oto Zapletal","CC BY-SA 4.0") ] },
+
+{ z:14, sym:"Si", name:"Silicium", mass:"28,086", cat:"halbmetall", per:3, grp:14, st:"fest", sh:"2 / 8 / 4", en:"silicon", found:"im Sand", uses:"Chips",
+  img:"https://upload.wikimedia.org/wikipedia/commons/2/2c/Silicon.jpg",
+  f1:"Silicium ist das zweithäufigste Element in der Erdkruste.",
+  f2:"Silicium steckt in Sand – und in Computerchips.",
+  f3:"Solarmodule machen mit Silicium aus Sonnenlicht Strom.",
+  obj:"Solarmodul", cap:"Diese Solarzellen sind aus Silicium. Sie machen aus Sonnenlicht elektrischen Strom.",
+  imgs:[ img("Solar_panels_closeup.jpg","Jollyroger","CC BY-SA 2.5") ] },
+
+{ z:15, sym:"P",  name:"Phosphor", mass:"30,974", cat:"nichtmetall", per:3, grp:15, st:"fest", sh:"2 / 8 / 5", en:"phosphorus", found:"in Knochen", uses:"Dünger",
+  img:"https://upload.wikimedia.org/wikipedia/commons/6/6d/Phosphorus-purple.jpg",
+  f1:"Weißer Phosphor leuchtet im Dunkeln, wenn er mit Sauerstoff reagiert.",
+  f2:"Phosphor ist wichtig für Knochen und für Pflanzen.",
+  f3:"Auf dem Streichholzkopf ist Phosphor. Er hilft beim Anzünden.",
+  obj:"Streichholzkopf", cap:"Der Kopf des Streichholzes enthält Phosphor. Reibt man ihn, entsteht Feuer.",
+  imgs:[ img("Burning match.jpg","Осадчая Екатерина","CC BY-SA 4.0") ] },
+
+{ z:16, sym:"S",  name:"Schwefel", mass:"32,065", cat:"nichtmetall", per:3, grp:16, st:"fest", sh:"2 / 8 / 6", en:"sulfur", found:"in Vulkanen", uses:"Dünger",
+  img:"https://upload.wikimedia.org/wikipedia/commons/2/23/Native_sulfur_%28Vodinskoe_Deposit%3B_quarry_near_Samara%2C_Russia%29_9.jpg",
+  f1:"Schwefel ist ein gelber Stoff, den Menschen schon im Altertum kannten.",
+  f2:"Schwefelverbindungen riechen oft streng – zum Beispiel nach faulen Eiern.",
+  f3:"Im Autoreifen ist Schwefel. Er macht das Gummi elastisch.",
+  obj:"Autoreifen", cap:"Schwefel macht das Gummi im Autoreifen elastisch und haltbar.",
+  imgs:[ img("Tyre.jpg","ProjectManhattan","CC BY-SA 3.0") ] },
+
+{ z:17, sym:"Cl", name:"Chlor", mass:"35,453", cat:"halogen", per:3, grp:17, st:"gasförmig", sh:"2 / 8 / 7", en:"chlorine", found:"im Salz", uses:"Desinfektion",
+  img:"https://upload.wikimedia.org/wikipedia/commons/9/9a/Chlorine-sample-flip.jpg",
+  f1:"Chlor ist ein gelbgrünes Gas mit stechendem Geruch.",
+  f2:"Reines Chlor ist giftig. In Verbindungen ist es aber sehr nützlich.",
+  f3:"Im Schwimmbad hilft Chlor, Keime im Wasser zu töten.",
+  obj:"Schwimmbad", cap:"Chlor hält das Wasser im Schwimmbad sauber, weil es Keime tötet.",
+  imgs:[ img("Swimming Pool in a hotel in Tamil Nadu 03.jpg","Kritzolina","CC BY-SA 4.0") ] },
+
+{ z:18, sym:"Ar", name:"Argon", mass:"39,948", cat:"edelgas", per:3, grp:18, st:"gasförmig", sh:"2 / 8 / 8", en:"argon", found:"in der Luft", uses:"Glühbirnen",
+  img:"https://upload.wikimedia.org/wikipedia/commons/5/53/Argon-glow.jpg",
+  f1:"Argon macht fast 1 Prozent unserer Luft aus.",
+  f2:"Argon ist ein Edelgas und reagiert fast nie.",
+  f3:"In der Glühbirne schützt Argon den Draht vor dem Verbrennen.",
+  obj:"Glühbirne", cap:"Argon in der Glühbirne schützt den glühenden Draht.",
+  imgs:[ img("Gluehlampe 01 KMJ.jpg","KMJ","CC BY-SA 3.0") ] },
+
+{ z:19, sym:"K",  name:"Kalium", mass:"39,098", cat:"alkali", per:4, grp:1, st:"fest", sh:"2 / 8 / 8 / 1", en:"potassium", found:"in Bananen", uses:"Dünger",
+  img:"https://commons.wikimedia.org/wiki/Special:FilePath/Potassium_(Element_-_19).jpg",
+  f1:"Kalium ist ein weiches Metall, das sogar auf Wasser schwimmt.",
+  f2:"Kalium reagiert heftig mit Wasser.",
+  f3:"In der Banane ist viel Kalium. Es ist gut für Muskeln und Nerven.",
+  obj:"Banane", cap:"Bananen enthalten viel Kalium – gut für Muskeln und Nerven.",
+  imgs:[ img("Banana-Single.jpg","Evan-Amos","CC BY-SA 3.0") ] },
+
+{ z:20, sym:"Ca", name:"Calcium", mass:"40,078", cat:"erdalkali", per:4, grp:2, st:"fest", sh:"2 / 8 / 8 / 2", en:"calcium", found:"in Knochen", uses:"Zement",
+  img:"https://upload.wikimedia.org/wikipedia/commons/7/72/Calcium.jpg",
+  f1:"Calcium ist wichtig für stabile Knochen und Zähne.",
+  f2:"Calcium steckt in Kalkstein, Kreide und Marmor.",
+  f3:"Ein Glas Milch enthält viel Calcium.",
+  obj:"Glas Milch", cap:"Milch enthält Calcium. Das stärkt Knochen und Zähne.",
+  imgs:[ img("Glass of milk.jpg","Santeri Viinamäki","CC BY-SA 4.0") ] },
+
+{ z:21, sym:"Sc", name:"Scandium", mass:"44,956", cat:"uebergang", per:4, grp:3, st:"fest", sh:"2 / 8 / 9 / 2", en:"scandium", found:"in Mineralien", uses:"Flugzeuge",
+  img:"https://upload.wikimedia.org/wikipedia/commons/f/f5/Scandium%2C_Sc.jpg",
+  f1:"Scandium ist ein seltenes, sehr leichtes Metall.",
+  f2:"Scandium in Lampen sorgt für Licht, das fast wie Sonnenlicht aussieht.",
+  f3:"Die starken Lampen im Stadion enthalten Scandium.",
+  obj:"Stadionbeleuchtung", cap:"Die Flutlichter im Stadion leuchten mit Scandium fast wie Tageslicht.",
+  imgs:[ img("Kadriorg Stadium floodlights and Maakri high-rises.jpg","Sancos","CC BY 4.0") ] },
+
+{ z:22, sym:"Ti", name:"Titan", mass:"47,867", cat:"uebergang", per:4, grp:4, st:"fest", sh:"2 / 8 / 10 / 2", en:"titanium", found:"in Mineralien", uses:"Implantate",
+  img:"https://upload.wikimedia.org/wikipedia/commons/e/ec/Titanium.jpg",
+  f1:"Titan ist fast so stabil wie Stahl, aber viel leichter.",
+  f2:"Titan rostet nicht und ist verträglich für den Körper.",
+  f3:"Viele leichte Brillen haben ein Gestell aus Titan.",
+  obj:"Leichte Brille", cap:"Diese Brille hat ein Gestell aus Titan und ist deshalb sehr leicht.",
+  imgs:[ img("Eyeglasses.jpg","Wapcaplet","CC BY-SA 3.0") ] },
+
+{ z:23, sym:"V",  name:"Vanadium", mass:"50,942", cat:"uebergang", per:4, grp:5, st:"fest", sh:"2 / 8 / 11 / 2", en:"vanadium", found:"in Mineralien", uses:"Stahl",
+  img:"https://upload.wikimedia.org/wikipedia/commons/0/0a/Vanadium-pieces.jpg",
+  f1:"Vanadium ist ein hartes, silberglänzendes Metall.",
+  f2:"Schon wenig Vanadium macht Stahl härter und stabiler.",
+  f3:"Viele Schraubenschlüssel sind aus Chrom-Vanadium-Stahl.",
+  obj:"Schraubenschlüssel", cap:"Vanadium macht den Schraubenschlüssel besonders stabil.",
+  imgs:[ img("Ca 1980 15 mm chrome vanadium combination wrench by British company Draper Tools.jpg","R. Henrik Nilsson","CC BY 4.0") ] },
+
+{ z:24, sym:"Cr", name:"Chrom", mass:"51,996", cat:"uebergang", per:4, grp:6, st:"fest", sh:"2 / 8 / 13 / 1", en:"chromium", found:"in Mineralien", uses:"Edelstahl",
+  img:"https://upload.wikimedia.org/wikipedia/commons/a/a1/Chromium.jpg",
+  f1:"Chrom glänzt stark und läuft nicht an.",
+  f2:"Chrom macht Stahl rostfrei.",
+  f3:"Die glänzende Armatur im Bad hat eine dünne Schicht aus Chrom.",
+  obj:"Glänzende Armatur", cap:"Die Chromschicht lässt die Armatur glänzen und schützt sie vor Rost.",
+  imgs:[ img("Wasserhahn.jpg","Matthew Bowden","Attribution (CC BY)") ] },
+
+{ z:25, sym:"Mn", name:"Mangan", mass:"54,938", cat:"uebergang", per:4, grp:7, st:"fest", sh:"2 / 8 / 13 / 2", en:"manganese", found:"in der Erdkruste", uses:"Stahl",
+  img:"https://upload.wikimedia.org/wikipedia/commons/6/64/Manganese_element.jpg",
+  f1:"Mangan ist ein hartes, sprödes Metall.",
+  f2:"Mangan macht Stahl härter und rostfreier.",
+  f3:"In der AA-Batterie hilft Mangan, Strom zu liefern.",
+  obj:"AA-Batterie", cap:"Mangan hilft der AA-Batterie, Strom zu speichern und abzugeben.",
+  imgs:[ img("Golden Power Power Plus AA alkaline batteries.jpg","Multicherry","CC BY-SA 4.0") ] },
+
+{ z:26, sym:"Fe", name:"Eisen", mass:"55,845", cat:"uebergang", per:4, grp:8, st:"fest", sh:"2 / 8 / 14 / 2", en:"iron", found:"in der Erdkruste", uses:"Stahl",
+  img:"https://commons.wikimedia.org/wiki/Special:FilePath/Iron_(Element_-_26)_1.jpg",
+  f1:"Eisen ist das wichtigste Metall für Brücken, Autos und Häuser.",
+  f2:"Eisen rostet, wenn es mit Wasser und Luft in Kontakt kommt.",
+  f3:"Eisen ist im Nagel – und im Blut: Dort bringt es Sauerstoff durch den Körper.",
+  obj:"Nagel & Blutstropfen", cap:"Nägel sind aus Eisen. Auch im Blut ist Eisen: Es transportiert den Sauerstoff.",
+  imgs:[ img("Nails.jpg","Walter J. Pilsak","CC BY-SA 3.0"), img("Blood drop.jpg","Paulo Ricardo","Public domain") ] },
+
+{ z:27, sym:"Co", name:"Kobalt", mass:"58,933", cat:"uebergang", per:4, grp:9, st:"fest", sh:"2 / 8 / 15 / 2", en:"cobalt", found:"in Mineralien", uses:"Batterien",
+  img:"https://upload.wikimedia.org/wikipedia/commons/6/62/Cobalt_ore_2.jpg",
+  f1:"Kobalt ist ein silbernes Metall, das magnetisch ist.",
+  f2:"Kobalt steckt in vielen starken Akkus.",
+  f3:"Kobalt färbt Glas tiefblau.",
+  obj:"Blaues Glas", cap:"Kobalt gibt diesem Glas seine tiefblaue Farbe.",
+  imgs:[ img("Blue bottle.jpg","JustinLiang522","CC BY-SA 4.0") ] },
+
+{ z:28, sym:"Ni", name:"Nickel", mass:"58,693", cat:"uebergang", per:4, grp:10, st:"fest", sh:"2 / 8 / 16 / 2", en:"nickel", found:"in der Erdkruste", uses:"Münzen",
+  img:"https://upload.wikimedia.org/wikipedia/commons/5/57/Nickel_chunk.jpg",
+  f1:"Nickel ist ein silberweißes Metall und magnetisch.",
+  f2:"Nickel macht Stahl hart und rostfrei.",
+  f3:"In vielen Münzen steckt Nickel.",
+  obj:"Münze", cap:"Diese Münzen enthalten Nickel. Er macht sie hart und glänzend.",
+  imgs:[ img("Euro coins.jpg","Mario Antonio Pena Zapatería","CC BY-SA 2.0") ] },
+
+{ z:29, sym:"Cu", name:"Kupfer", mass:"63,546", cat:"uebergang", per:4, grp:11, st:"fest", sh:"2 / 8 / 18 / 1", en:"copper", found:"in Mineralien", uses:"Kabel",
+  img:"https://upload.wikimedia.org/wikipedia/commons/f/f0/NatCopper.jpg",
+  f1:"Kupfer glänzt rötlich und leitet Strom sehr gut.",
+  f2:"Menschen nutzen Kupfer schon seit über 10 000 Jahren.",
+  f3:"Im Stromkabel sind Drähte aus Kupfer.",
+  obj:"Stromkabel", cap:"Kupfer leitet elektrischen Strom sehr gut – deshalb steckt es im Kabel.",
+  imgs:[ img("Stranded lamp wire.jpg","Scott Ehardt","Public domain") ] },
+
+{ z:30, sym:"Zn", name:"Zink", mass:"65,380", cat:"uebergang", per:4, grp:12, st:"fest", sh:"2 / 8 / 18 / 2", en:"zinc", found:"in Mineralien", uses:"Batterien",
+  img:"https://upload.wikimedia.org/wikipedia/commons/b/ba/Zinc_%2830_Zn%29.jpg",
+  f1:"Eine Schicht Zink schützt Eisen vor Rost.",
+  f2:"Der Körper braucht Zink, um gesund zu bleiben.",
+  f3:"In Sonnencreme ist Zinkoxid. Es schützt die Haut vor der Sonne.",
+  obj:"Sonnencreme", cap:"Zinkoxid in der Sonnencreme schützt die Haut vor Sonnenstrahlen.",
+  imgs:[ img("Sunscreen.jpg","Maria tanjung","CC BY-SA 4.0") ] },
+
+{ z:31, sym:"Ga", name:"Gallium", mass:"69,723", cat:"metall", per:4, grp:13, st:"fest", sh:"2 / 8 / 18 / 3", en:"gallium", found:"in Mineralien", uses:"LEDs, Computerchips",
+  img:"https://upload.wikimedia.org/wikipedia/commons/b/b1/Solid_gallium_%28Ga%29.jpg",
+  f1:"Gallium schmilzt schon in der warmen Hand.",
+  f2:"Gallium ist wichtig für LEDs und Computerchips.",
+  f3:"In der LED-Lampe steckt Gallium – es hilft beim Leuchten.",
+  obj:"LED-Lampe", cap:"Gallium hilft der LED-Lampe, helles Licht zu machen.",
+  imgs:[ img("LED bulb.jpg","Pogrebnoj-Alexandroff","CC BY-SA 3.0") ] },
+
+{ z:32, sym:"Ge", name:"Germanium", mass:"72,640", cat:"halbmetall", per:4, grp:14, st:"fest", sh:"2 / 8 / 18 / 4", en:"germanium", found:"in Mineralien", uses:"Glasfasern",
+  img:"https://upload.wikimedia.org/wikipedia/commons/0/08/Polycrystalline-germanium.jpg",
+  f1:"Germanium ist ein seltenes Halbmetall.",
+  f2:"Germanium war der Stoff für die ersten Transistoren.",
+  f3:"Glasfaserkabel enthalten Germanium. Sie bringen das Internet blitzschnell zu uns.",
+  obj:"Glasfaserkabel", cap:"Germanium hilft dem Glasfaserkabel, Daten als Licht zu senden.",
+  imgs:[ img("Optical fiber.jpg","Stalinets","CC BY-SA 4.0") ] },
+
+{ z:33, sym:"As", name:"Arsen", mass:"74,922", cat:"halbmetall", per:4, grp:15, st:"fest", sh:"2 / 8 / 18 / 5", en:"arsenic", found:"in Mineralien", uses:"Halbleiter",
+  img:"https://upload.wikimedia.org/wikipedia/commons/3/3b/Arsenic_%2833_As%29.jpg",
+  f1:"Arsen ist ein Halbmetall und in größeren Mengen giftig.",
+  f2:"Arsen kommt natürlich im Boden und im Wasser vor.",
+  f3:"Reis nimmt aus dem Boden winzige Spuren von Arsen auf.",
+  obj:"Reiskorn", cap:"Reiskörner enthalten winzige Spuren von Arsen aus dem Boden. Die Mengen sind sehr klein.",
+  imgs:[ img("Rice grains.jpg","Wikimedia Commons","CC BY-SA 3.0") ] },
+
+{ z:34, sym:"Se", name:"Selen", mass:"78,960", cat:"nichtmetall", per:4, grp:16, st:"fest", sh:"2 / 8 / 18 / 6", en:"selenium", found:"in Mineralien", uses:"Glas",
+  img:"https://upload.wikimedia.org/wikipedia/commons/7/7f/Selenium.jpg",
+  f1:"Der Körper braucht Selen in kleinen Mengen.",
+  f2:"Selen kann Glas rot färben.",
+  f3:"In der Paranuss ist viel Selen. Schon eine Nuss deckt den Tagesbedarf.",
+  obj:"Paranuss", cap:"Paranüsse enthalten besonders viel Selen.",
+  imgs:[ img("Brazil nuts.jpg","Quadell","CC BY-SA 3.0") ] },
+
+{ z:35, sym:"Br", name:"Brom", mass:"79,904", cat:"halogen", per:4, grp:17, st:"flüssig", sh:"2 / 8 / 18 / 7", en:"bromine", found:"im Meerwasser", uses:"Flammschutz",
+  img:"https://upload.wikimedia.org/wikipedia/commons/8/87/Bromine-ampoule.jpg",
+  f1:"Brom ist eine rotbraune Flüssigkeit – eines von nur zwei flüssigen Elementen.",
+  f2:"Brom-Dämpfe sind giftig und riechen streng.",
+  f3:"Im Whirlpool hilft Brom, das Wasser sauber zu halten.",
+  obj:"Whirlpool", cap:"Brom hält das Wasser im Whirlpool sauber – es tötet Keime.",
+  imgs:[ img("Hot tub.jpg","claire rowland","CC BY 2.0") ] },
+
+{ z:36, sym:"Kr", name:"Krypton", mass:"83,798", cat:"edelgas", per:4, grp:18, st:"gasförmig", sh:"2 / 8 / 18 / 8", en:"krypton", found:"in der Luft", uses:"Laser",
+  img:"https://upload.wikimedia.org/wikipedia/commons/9/9c/Krypton-glow.jpg",
+  f1:"Krypton ist ein seltenes Edelgas.",
+  f2:"Der Name kommt aus dem Griechischen und bedeutet „versteckt“.",
+  f3:"Zwischen den Scheiben von manchen Isolierfenstern ist Krypton. Es hält die Wärme im Haus.",
+  obj:"Isolierfenster", cap:"Links leuchtet Krypton, wenn Strom durch das Gas fließt. Rechts ein Isolierfenster: Zwischen seinen Scheiben hält Krypton die Wärme im Haus.",
+  imgs:[ img("Krypton-glow.jpg","Jurii","CC BY 3.0"), img("Double glazing.jpg","Ftm100","CC BY-SA 3.0") ] }
+];
+
+/* ================================================================
+   DETAILS: Titel + Erklärung zu Fakt 1 und 2 (Schlüssel: "Sym-N")
+   ================================================================ */
+const DET = {
+"H-1":  ["Warum ist Wasserstoff so leicht?", "Wasserstoff-Atome sind die kleinsten und leichtesten Atome. Ein Atom hat nur ein Proton und ein Elektron. Deshalb ist das Gas viel leichter als Luft."],
+"H-2":  ["Woher kommt der ganze Wasserstoff?", "Nach dem Urknall entstanden zuerst Wasserstoff-Atome. Sterne bestehen fast nur aus Wasserstoff. Auch unsere Sonne holt ihre Energie daraus."],
+"He-1": ["Warum reagiert Helium mit nichts?", "Die äußere Schale von Helium ist voll besetzt. Deshalb braucht das Atom keine Bindungen. Man nennt solche Gase Edelgase."],
+"He-2": ["Warum steigt ein Heliumballon?", "Helium ist viel leichter als die Luft im Raum. Die schwerere Luft drückt den Ballon nach oben. Das nennt man Auftrieb."],
+"Li-1": ["Warum ist Lithium so leicht?", "Lithium ist das leichteste Metall. Es ist so weich, dass man es schneiden kann. Auf Öl schwimmt es sogar."],
+"Li-2": ["Warum nutzt man Lithium in Akkus?", "Lithium-Atome geben ihr äußeres Elektron leicht ab. So kann ein Akku viel Energie speichern. Deshalb steckt Lithium in Handys und E-Autos."],
+"Be-1": ["Warum ist Beryllium besonders?", "Beryllium ist sehr leicht und trotzdem sehr hart. Es bleibt auch bei Hitze stabil. Für den Körper ist das Metall aber giftig."],
+"Be-2": ["Was hat Beryllium mit Edelsteinen zu tun?", "Smaragd und Aquamarin sind Minerale mit Beryllium. Winzige Mengen anderer Stoffe geben ihnen die Farbe. Beim Smaragd ist es Chrom."],
+"B-1":  ["Was ist ein Halbmetall?", "Halbmetalle stehen zwischen Metallen und Nichtmetallen. Bor leitet Strom nur schlecht. Es ist sehr hart und hat einen hohen Schmelzpunkt."],
+"B-2":  ["Warum hält Borosilikatglas Hitze aus?", "Bor macht das Glas unempfindlich gegen Temperatursprünge. Es dehnt sich kaum aus. Deshalb springt die Schale im Ofen nicht."],
+"C-1":  ["Warum ist Kohlenstoff so wichtig?", "Kohlenstoff kann lange Ketten und Ringe bilden. Darum gibt es Millionen von Kohlenstoff-Verbindungen. Alle Lebewesen sind darauf aufgebaut."],
+"C-2":  ["Wie kann ein Stoff so verschieden sein?", "Die Atome sind gleich, aber anders angeordnet. Im Graphit liegen sie in Schichten, im Diamant als festes Gitter. So wird aus der weichen Mine der härteste Stein."],
+"N-1":  ["Warum ist so viel Stickstoff in der Luft?", "Stickstoff ist sehr stabil und reagiert ungern. Er hat sich über Milliarden Jahre in der Luft gesammelt. Heute sind es etwa 78 Prozent."],
+"N-2":  ["Warum ist ein Gas im Airbag?", "Bei einem Crash entsteht blitzschnell Stickstoff. Das Gas füllt den Sack in wenigen Millisekunden. Der Kopf prallt weich auf."],
+"O-1":  ["Warum brauchen wir Sauerstoff?", "Die Körperzellen gewinnen Energie mit Sauerstoff. Ohne ihn arbeiten Gehirn und Muskeln nicht. Schon nach wenigen Minuten wird es gefährlich."],
+"O-2":  ["Woher kommt der Sauerstoff?", "Pflanzen und Algen stellen ihn bei der Fotosynthese her. Sie nutzen Sonnenlicht, Wasser und Kohlenstoffdioxid. So bleibt der Anteil in der Luft stabil."],
+"F-1":  ["Warum ist Fluor so reaktiv?", "Dem Atom fehlt nur ein Elektron zur vollen Schale. Es holt sich das Elektron von fast jedem Partner. Deshalb reagiert Fluor so heftig."],
+"F-2":  ["Ist Fluor in der Zahnpasta gefährlich?", "Nein, denn dort ist es fest gebunden – als Fluorid. Fluorid stärkt den Zahnschmelz. Die Menge ist klein und ungefährlich."],
+"Ne-1": ["Warum leuchtet Neon?", "Fließt Strom durch das Gas, werden die Atome angeregt. Beim Zurückfallen geben sie Licht ab. Neon leuchtet dabei rot-orange."],
+"Ne-2": ["Warum reagiert Neon nie?", "Die äußere Schale ist voll besetzt. Das Atom braucht keine Bindung. Darum bleibt Neon immer ein einzelnes Gas-Atom."],
+"Na-1": ["Warum kann man Natrium schneiden?", "Natrium ist sehr weich, fast wie Wachs. Die Atome halten nur locker zusammen. Man kann das Metall mit einem Messer teilen."],
+"Na-2": ["Warum ist Natrium im Salz harmlos?", "Im Salz hat Natrium sein Elektron an Chlor abgegeben. Beide sind nun geladene Teilchen und fest gebunden. Die gefährlichen Eigenschaften sind weg."],
+"Mg-1": ["Warum brennt Magnesium so hell?", "Magnesium reagiert schnell mit Sauerstoff. Dabei wird sehr viel Energie frei. Das Licht ist gleißend weiß."],
+"Mg-2": ["Warum nimmt man Magnesium für den Leichtbau?", "Magnesium ist sehr leicht und trotzdem stabil. Bauteile aus Magnesium sparen Gewicht. Das hilft bei Autos und Flugzeugen."],
+"Al-1": ["Warum rostet Aluminium nicht?", "Aluminium bildet sofort eine dünne Oxidschicht. Diese Schicht schützt das Metall darunter. Deshalb bleibt Aluminium lange glänzend."],
+"Al-2": ["Warum sind Dosen aus Aluminium?", "Das Metall ist leicht, stabil und rostfrei. Man kann es sehr gut recyceln. Das spart Energie und Rohstoffe."],
+"Si-1": ["Warum ist Silicium in Chips?", "Silicium ist ein Halbleiter. Es leitet Strom mal gut, mal schlecht – je nach Spannung. Genau das brauchen Transistoren im Chip."],
+"Si-2": ["Wie macht ein Solarmodul Strom?", "Licht trifft auf das Silicium und löst Elektronen aus. Die Elektronen fließen als Strom durch das Kabel. So wird aus Licht elektrische Energie."],
+"P-1":  ["Warum leuchtet weißer Phosphor?", "Weißer Phosphor reagiert langsam mit Sauerstoff. Dabei entsteht Licht, aber kaum Wärme. Man nennt das kaltes Leuchten."],
+"P-2":  ["Warum zündet ein Streichholz?", "Der Kopf enthält Phosphor und weitere Stoffe. Durch die Reibung wird es heiß, der Phosphor reagiert. Die Flamme entsteht."],
+"S-1":  ["Warum ist Schwefel gelb?", "Schwefel-Atome bilden Ringe aus acht Atomen. Diese Ringe schlucken blaues Licht. Darum sehen wir Schwefel gelb."],
+"S-2":  ["Was macht Schwefel im Reifen?", "Beim Vulkanisieren verbindet Schwefel die Gummi-Moleküle. Das Gummi wird elastisch und haltbar. Ohne Schwefel wäre der Reifen schnell kaputt."],
+"Cl-1": ["Warum riecht Chlor so stark?", "Chlor-Moleküle sind sehr reaktiv. Schon wenige Moleküle reizen die Nase. Deshalb riecht man Chlor sofort."],
+"Cl-2": ["Wie hält Chlor das Wasser sauber?", "Chlor tötet Bakterien und andere Keime ab. Es zerstört deren Zellen. Im Becken bleibt die Menge klein und kontrolliert."],
+"Ar-1": ["Warum ist Argon in der Glühbirne?", "Der heiße Draht würde an der Luft sofort verbrennen. Argon reagiert nicht mit dem Draht. Deshalb hält die Birne länger."],
+"Ar-2": ["Warum findet man Argon so leicht?", "Argon entsteht, wenn Kalium im Gestein zerfällt. Es sammelt sich in der Luft. Fast ein Prozent unserer Luft ist Argon."],
+"K-1":  ["Warum schwimmt Kalium auf Wasser?", "Kalium ist leichter als Wasser. Gleichzeitig reagiert es heftig mit Wasser. Dabei flitzt es oft über die Oberfläche."],
+"K-2":  ["Warum ist Kalium wichtig für den Körper?", "Nerven und Muskeln brauchen Kalium. Es hilft, Signale weiterzuleiten. Bananen enthalten besonders viel davon."],
+"Ca-1": ["Warum sind Knochen stabil?", "Knochen enthalten viel Calcium in Form von Mineralien. Diese Kristalle machen den Knochen hart. Ohne Calcium wären Knochen weich."],
+"Ca-2": ["Woher kommt der Kalk im Wasserkocher?", "Wasser löst Calcium aus Gestein. Beim Erhitzen fällt es als Kalk aus. Das ist genau das Calcium aus dem Kalkstein."],
+"Sc-1": ["Warum ist Scandium so selten?", "Scandium entsteht in Sternen nur in winzigen Mengen. Auf der Erde ist es weit verstreut. Man findet es kaum in reinen Adern."],
+"Sc-2": ["Warum leuchten Stadionlampen so weiß?", "Scandium in der Lampe sorgt für ein Licht wie am Tag. Farben wirken dadurch natürlich. Deshalb nutzt man es im Flutlicht."],
+"Ti-1": ["Warum ist Titan so beliebt?", "Titan ist leicht wie Aluminium und stark wie Stahl. Es rostet nicht. Deshalb ist es ideal für Flugzeuge und Implantate."],
+"Ti-2": ["Warum verträgt der Körper Titan?", "Titan bildet eine stabile Oxidschicht. Der Körper greift sie nicht an. Darum nutzt man Titan für künstliche Gelenke."],
+"V-1":  ["Warum macht Vanadium Stahl härter?", "Vanadium-Atome bilden feine Kristalle im Stahl. Sie bremsen kleine Verschiebungen im Metall. Der Stahl wird härter und zäher."],
+"V-2":  ["Wo versteckt sich Vanadium im Alltag?", "Vanadium steckt in Werkzeugen wie Schraubenschlüsseln. Auch manche Autobauteile enthalten es. Man sieht es nicht – es wirkt im Stahl."],
+"Cr-1": ["Warum glänzt Chrom so lange?", "Chrom bildet eine dünne, unsichtbare Oxidschicht. Sie schützt vor Rost und Kratzern. Der Glanz bleibt erhalten."],
+"Cr-2": ["Was bedeutet „verchromt“?", "Ein dünner Film aus Chrom wird auf das Metall gebracht. Das schützt und sieht gut aus. Armaturen und Autoteile sind oft verchromt."],
+"Mn-1": ["Warum ist Mangan so spröde?", "Reines Mangan hat ein kompliziertes Kristallgitter. Es bricht leicht, statt sich zu biegen. Darum nutzt man Mangan fast nur in Legierungen."],
+"Mn-2": ["Was macht Mangan in der Batterie?", "In der Batterie reagiert Manganoxid am Pluspol. Dabei fließen Elektronen. So liefert die Batterie Strom."],
+"Fe-1": ["Warum ist Eisen das wichtigste Metall?", "Eisen ist stabil, günstig und gut zu verarbeiten. Aus Eisen macht man Stahl. Brücken, Autos und Häuser bestehen daraus."],
+"Fe-2": ["Warum rostet Eisen?", "Eisen reagiert mit Sauerstoff und Wasser. Es entsteht Eisenoxid – der Rost. Rost ist porös und schützt das Metall nicht."],
+"Co-1": ["Warum ist Kobalt magnetisch?", "Die Elektronen in Kobalt richten sich gern gleich aus. Deshalb ist Kobalt ferromagnetisch. Es steckt in starken Magneten."],
+"Co-2": ["Warum färbt Kobalt Glas blau?", "Kobalt-Ionen absorbieren rotes und gelbes Licht. Übrig bleibt ein tiefes Blau. Schon winzige Mengen reichen."],
+"Ni-1": ["Warum sind Münzen aus Nickel?", "Nickel ist hart und rostet nicht. Münzen bleiben lange schön. Oft ist Nickel mit Kupfer gemischt."],
+"Ni-2": ["Warum ist Nickel in Edelstahl?", "Nickel macht den Stahl rostfrei und zäh. Besteck und Töpfe bestehen daraus. Auch Chemieanlagen nutzen Edelstahl."],
+"Cu-1": ["Warum leitet Kupfer Strom so gut?", "Kupfer hat frei bewegliche Elektronen. Sie fließen fast ohne Widerstand. Nur Silber leitet noch besser – ist aber teuer."],
+"Cu-2": ["Warum wird Kupfer seit so langer Zeit genutzt?", "Kupfer kommt manchmal rein in der Natur vor. Man konnte es früh finden und formen. Schon vor über 10 000 Jahren nutzten Menschen es."],
+"Zn-1": ["Warum schützt Zink vor Rost?", "Zink opfert sich für das Eisen. Es reagiert zuerst mit Sauerstoff. Das Eisen darunter bleibt heil."],
+"Zn-2": ["Wie schützt Zinkoxid die Haut?", "Zinkoxid liegt als feines Pulver in der Creme. Es reflektiert und streut die UV-Strahlen. Die Sonnenstrahlen dringen nicht tief in die Haut."],
+"Ga-1": ["Warum schmilzt Gallium in der Hand?", "Der Schmelzpunkt liegt bei etwa 30 Grad. Die Hand ist wärmer. Darum wird Gallium in der Hand flüssig."],
+"Ga-2": ["Warum leuchtet eine LED?", "In der LED steckt eine Schicht mit Gallium. Fließt Strom, geben die Atome Licht ab. Die Farbe hängt vom Material ab."],
+"Ge-1": ["Warum war Germanium so wichtig?", "Der erste Transistor war aus Germanium. Er konnte Strom schalten und verstärken. Das war der Start der Elektronik."],
+"Ge-2": ["Was hat Germanium mit dem Internet zu tun?", "Der Kern von Glasfasern enthält Germanium. Es leitet das Lichtsignal besonders gut. Daten rasen als Licht um die Welt."],
+"As-1": ["Warum ist Arsen giftig?", "Arsen blockiert wichtige Vorgänge in den Zellen. Der Körper kann Energie nicht mehr nutzen. Schon kleine Mengen sind gefährlich."],
+"As-2": ["Warum ist Arsen im Reis?", "Reis wächst oft auf überfluteten Feldern. Dort löst sich Arsen aus dem Boden. Die Pflanze nimmt es mit dem Wasser auf – meist nur in Spuren."],
+"Se-1": ["Warum braucht der Körper Selen?", "Selen ist Teil wichtiger Enzyme. Sie schützen die Zellen vor Schäden. Der Bedarf ist klein, aber nötig."],
+"Se-2": ["Warum kann Selen Glas färben?", "Selen-Verbindungen färben Glas rot oder rosa. Früher nahm man Selen auch, um Grünstiche aus dem Glas zu nehmen. Die Menge entscheidet über die Farbe."],
+"Br-1": ["Warum ist Brom flüssig?", "Die Anziehung zwischen den Brom-Molekülen ist mittelstark. Bei Raumtemperatur hält sie gerade so zusammen. Deshalb ist Brom eine Flüssigkeit."],
+"Br-2": ["Warum nimmt man Brom im Whirlpool?", "Brom tötet Keime im warmen Wasser. Es wirkt auch bei höherer Temperatur gut. Der Geruch ist milder als bei Chlor."],
+"Kr-1": ["Warum heißt Krypton „versteckt“?", "Krypton ist selten und reagiert nicht. Man entdeckte es erst spät in der Luft. Der Name kommt aus dem Griechischen."],
+"Kr-2": ["Warum ist Krypton im Isolierfenster?", "Krypton leitet Wärme schlechter als Luft. Zwischen den Scheiben dämmt es deshalb besser. Das Haus bleibt warm, die Heizung spart Energie."]
+};
+
+/* ================================================================
+   LOGIK
+   ================================================================ */
+const $ = id => document.getElementById(id);
+const ptable = $("ptable"), overlay = $("overlay"), chipsBox = $("chips"), q = $("q"), hint = $("hint");
+let current = null;
+let activeCat = "alle";
+
+const rscUrl  = el => "https://www.rsc.org/periodic-table/element/" + el.z + "/" + el.en;
+const wikiUrl = el => "https://de.wikipedia.org/wiki/" + encodeURIComponent(el.name);
+const massNum = el => parseFloat(el.mass.replace(",", "."));
+const neutronsOf = el => Math.round(massNum(el)) - el.z;
+const shellArray = el => el.sh.split("/").map(s => parseInt(s.trim(), 10));
+
+/* ---------- Periodensystem + Filter ---------- */
+function createElement(el, i) {
+    const b = document.createElement("button");
+    b.className = "cell";
+    b.dataset.i = i;
+    b.style.setProperty("--c", CATS[el.cat].color);
+    b.style.gridColumn = el.grp;
+    b.style.gridRow = el.per;
+    b.style.setProperty("--i", i);
+    b.title = el.z + " · " + el.name;
+    b.setAttribute("aria-label", el.name + ", Element " + el.z);
+    b.innerHTML = '<i class="num">' + el.z + '</i><b class="sym">' + el.sym + '</b><span class="nm">' + el.name + '</span>';
+    b.onclick = () => showInfo(i);
+    return b;
+}
+ELEMENTS.forEach((el, i) => ptable.appendChild(createElement(el, i)));
+
+function buildChips() {
+    const mk = (label, key, color, n) => {
+        const b = document.createElement("button");
+        b.className = "chip" + (key === "alle" ? " on" : "");
+        b.style.setProperty("--c", color);
+        b.innerHTML = "<i></i>" + label + (n !== null ? " (" + n + ")" : "");
+        b.onclick = () => {
+            activeCat = key;
+            chipsBox.querySelectorAll(".chip").forEach(c => c.classList.remove("on"));
+            b.classList.add("on");
+            applyFilter();
+        };
+        chipsBox.appendChild(b);
+    };
+    mk("Alle", "alle", "#2bc4a0", null);
+    for (const key in CATS) mk(CATS[key].label, key, CATS[key].color, ELEMENTS.filter(e => e.cat === key).length);
+}
+buildChips();
+
+function applyFilter() {
+    const term = q.value.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll(".cell").forEach(cell => {
+        const e = ELEMENTS[+cell.dataset.i];
+        const catOk = activeCat === "alle" || e.cat === activeCat;
+        const qOk = !term ||
+            e.name.toLowerCase().includes(term) ||
+            e.sym.toLowerCase() === term ||
+            e.sym.toLowerCase().startsWith(term) ||
+            String(e.z) === term ||
+            CATS[e.cat].label.toLowerCase().includes(term);
+        cell.classList.toggle("off", !(catOk && qOk));
+        if (catOk && qOk) shown++;
+    });
+    hint.textContent = (term || activeCat !== "alle")
+        ? shown + (shown === 1 ? " Element gefunden" : " Elemente gefunden")
+        : "Tipp: Klicke auf ein Element – Atommodell, Teilchen und Fakten sind einen Klick entfernt.";
+    hint.style.color = shown === 0 ? "#f2786a" : "";
+}
+q.addEventListener("input", applyFilter);
+
+/* ---------- Elementbild (Original-Links, mit Fallback) ---------- */
+function updateElementImage(el) {
+    const im = $("el-img"), fb = $("el-img-fb");
+    im.classList.remove("loaded");
+    im.style.display = "block";
+    im.onerror = null;
+    fb.textContent = el.sym;
+    fb.style.display = "flex";
+    im.alt = el.name + " (Element)";
+
+    const tryWiki = () => {
+        fetch("https://de.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(el.name))
+            .then(r => { if (!r.ok) throw 0; return r.json(); })
+            .then(d => {
+                if (d && d.thumbnail && d.thumbnail.source) {
+                    im.onerror = () => { im.style.display = "none"; };
+                    im.src = d.thumbnail.source;
+                    im.onload = () => { im.classList.add("loaded"); fb.style.display = "none"; };
+                } else { im.style.display = "none"; }
+            })
+            .catch(() => { im.style.display = "none"; });
+    };
+    im.onerror = tryWiki;
+    im.src = el.img;
+    im.onload = () => { im.classList.add("loaded"); fb.style.display = "none"; };
+}
+
+/* ---------- Atommodell (Kern unverändert nach Original) ---------- */
+let atomAnim = null, atomPaused = false;
+
+function stopAtom() {
+    if (atomAnim) cancelAnimationFrame(atomAnim);
+    atomAnim = null;
+    $("atom-tip").style.display = "none";
+    $("atom-svg").style.display = "none";
+}
+
+function drawAtom(canvas, el) {
+    stopAtom();
+    atomPaused = false;
+    $("btn-pause").textContent = "⏸ Pause";
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    const S = 170;
+    canvas.width = S * dpr; canvas.height = S * dpr;
+    canvas.style.width = S + "px"; canvas.style.height = S + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const cx = S / 2, cy = S / 2;
+    const shells = shellArray(el);
+    const n = shells.length;
+    const R0 = 30, R1 = 80;
+    const radii = shells.map((_, i) => n === 1 ? (R0 + R1) / 2 : R0 + i * (R1 - R0) / (n - 1));
+
+    const electrons = [];
+    shells.forEach((count, i) => {
+        for (let k = 0; k < count; k++) {
+            electrons.push({ r: radii[i], a: (k / count) * Math.PI * 2 + i * 0.6, dir: i % 2 === 0 ? 1 : -1 });
+        }
+    });
+
+    let last = performance.now();
+    function frame(now) {
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        ctx.clearRect(0, 0, S, S);
+
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(136,145,171,.3)";
+        radii.forEach(r => { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); });
+
+        electrons.forEach(e => {
+            if (!atomPaused) e.a += e.dir * (55 / e.r) * dt;
+            const x = cx + Math.cos(e.a) * e.r, y = cy + Math.sin(e.a) * e.r;
+            ctx.save();
+            ctx.shadowColor = "#56c9e8";
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = "#bdeeff";
+            ctx.beginPath();
+            ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        });
+
+        const g = ctx.createRadialGradient(cx - 3, cy - 3, 2, cx, cy, 11);
+        g.addColorStop(0, "#a7f3e0");
+        g.addColorStop(0.55, "#2bc4a0");
+        g.addColorStop(1, "#127a5f");
+        ctx.save();
+        ctx.shadowColor = "rgba(43,196,160,.8)";
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        atomAnim = requestAnimationFrame(frame);
+    }
+    atomAnim = requestAnimationFrame(frame);
+}
+
+function handleNucleusTap(ev) {
+    const canvas = $("atom-canvas");
+    const rect = canvas.getBoundingClientRect();
+    const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+    const dx = x - 85, dy = y - 85;
+    if (Math.sqrt(dx * dx + dy * dy) <= 30) {
+        const el = ELEMENTS[current];
+        const tip = $("atom-tip"), svg = $("atom-svg");
+        const on = tip.style.display === "none";
+        tip.style.display = on ? "block" : "none";
+        svg.style.display = on ? "block" : "none";
+        tip.innerHTML =
+            '<p><span class="dot" style="background:#2bc4a0;"></span>Protonen: ' + el.z + '</p>' +
+            '<p><span class="dot" style="background:#f2b656;"></span>Neutronen: ' + neutronsOf(el) + '</p>';
+    }
+}
+$("atom-canvas").addEventListener("click", handleNucleusTap);
+
+function togglePause() {
+    atomPaused = !atomPaused;
+    $("btn-pause").textContent = atomPaused ? "▶ Weiter" : "⏸ Pause";
+}
+$("btn-pause").onclick = togglePause;
+
+function toggleAtom() {
+    const box = $("atom-box");
+    if (box.classList.contains("show")) {
+        box.classList.remove("show");
+        stopAtom();
+    } else {
+        box.classList.add("show");
+        drawAtom($("atom-canvas"), ELEMENTS[current]);
+    }
+}
+$("btn-atom").onclick = toggleAtom;
+
+/* ---------- Teilchen-Button: ALLE Zahlen in einem Panel ---------- */
+function toggleTeilchen() {
+    const el = ELEMENTS[current];
+    const pop = $("t-pop");
+    const shells = shellArray(el);
+    const A = Math.round(massNum(el));
+    const perShell = shells.map((c, i) => "Schale " + (i + 1) + ": <b>" + c + "</b>").join(" &nbsp;·&nbsp; ");
+
+    pop.innerHTML =
+        '<div class="t-grid">' +
+            '<div class="t-tile"><b style="color:#2bc4a0;">' + el.z + '</b><span><i class="dot" style="background:#2bc4a0;"></i>Protonen</span></div>' +
+            '<div class="t-tile"><b style="color:#f2b656;">' + neutronsOf(el) + '</b><span><i class="dot" style="background:#f2b656;"></i>Neutronen</span></div>' +
+            '<div class="t-tile"><b style="color:#56c9e8;">' + el.z + '</b><span><i class="dot" style="background:#56c9e8;"></i>Elektronen</span></div>' +
+        '</div>' +
+        '<div class="t-row"><span class="lbl">🧊 Zustand</span><span><b>' + el.st + '</b> (bei Raumtemperatur)</span></div>' +
+        '<div class="t-row"><span class="lbl">🧬 Schalen</span><span><b>' + shells.length + '</b> Schalen &nbsp;–&nbsp; ' + perShell + '</span></div>' +
+        '<div class="t-row"><span class="lbl">Kurzform</span><span><b>' + el.sh + '</b> &nbsp;(Elektronen je Schale)</span></div>' +
+        '<div class="t-row"><span class="lbl">Abkürzung</span><span class="t-nuclid"><sup>' + A + '</sup><sub>' + el.z + '</sub>' + el.sym + '</span>' +
+        '&nbsp;<span style="color:var(--muted);font-size:.72rem;">Massenzahl oben, Ordnungszahl unten</span></div>';
+    pop.classList.toggle("show");
+}
+$("btn-teilchen").onclick = toggleTeilchen;
+
+/* ---------- Info-Karte ---------- */
+function showInfo(i) {
+    current = i;
+    const el = ELEMENTS[i];
+    $("e-name").textContent = el.name;
+    $("subline").innerHTML = "<b>" + el.sym + "</b> · Nr. " + el.z + " · " + el.mass + " u";
+    $("fu-found").textContent = el.found;
+    $("fu-uses").textContent = el.uses;
+    $("more-links").innerHTML =
+        'Mehr erfahren: <a href="' + rscUrl(el) + '" target="_blank" rel="noopener">Royal Society of Chemistry ↗</a> · ' +
+        '<a href="' + wikiUrl(el) + '" target="_blank" rel="noopener">Wikipedia ↗</a>';
+    $("atom-box").classList.remove("show");
+    $("t-pop").classList.remove("show");
+    stopAtom();
+    updateElementImage(el);
+    overlay.classList.add("open");
+    document.body.style.overflow = "hidden";
+}
+function closeInfo() {
+    overlay.classList.remove("open");
+    document.body.style.overflow = "";
+    stopAtom();
+    $("t-pop").classList.remove("show");
+}
+$("close").onclick = closeInfo;
+overlay.addEventListener("click", ev => { if (ev.target === overlay) closeInfo(); });
+
+function nextElement() { if (current !== null) showInfo((current + 1) % ELEMENTS.length); }
+function prevElement() { if (current !== null) showInfo((current - 1 + ELEMENTS.length) % ELEMENTS.length); }
+$("next").onclick = nextElement;
+$("prev").onclick = prevElement;
+
+/* ---------- Seiten (Fakten / Detail / Foto) mit History-API ---------- */
+function hidePages() {
+    ["page-facts", "page-detail", "page-photo"].forEach(id => $(id).classList.remove("show"));
+}
+
+function openFactsPage(i) {
+    current = i;
+    const el = ELEMENTS[i];
+    $("fa-sym").textContent = el.sym;
+    $("fa-name").textContent = el.name;
+    $("fa-sub").textContent = "Nr. " + el.z + " · " + el.mass + " u · " + CATS[el.cat].label;
+    const list = $("fa-list");
+    list.innerHTML = "";
+    [el.f1, el.f2, el.f3].forEach((f, n) => {
+        const card = document.createElement("button");
+        card.className = "fact-card" + (n === 2 ? " daily" : "");
+        card.innerHTML =
+            '<span class="fico">💡</span>' +
+            '<span>' + (n === 2 ? '<span class="tag">Alltagsfoto</span>' : "") + '<p>' + f + '</p></span>' +
+            '<span class="arr">↗</span>';
+        card.onclick = () => { n === 2 ? goPhoto(i) : goDetail(i, n + 1); };
+        list.appendChild(card);
+    });
+}
+
+function openFactDetail(i, num) {
+    const el = ELEMENTS[i];
+    const d = DET[el.sym + "-" + num];
+    $("de-sym").textContent = el.sym;
+    $("de-name").textContent = el.name;
+    $("de-fact").textContent = num === 1 ? el.f1 : el.f2;
+    $("de-title").textContent = d[0];
+    $("de-text").textContent = d[1];
+    $("de-src").innerHTML =
+        'Quelle: <a href="' + rscUrl(el) + '" target="_blank" rel="noopener">Royal Society of Chemistry ↗</a> · ' +
+        '<a href="' + wikiUrl(el) + '" target="_blank" rel="noopener">Wikipedia ↗</a>';
+}
+
+function openPhotoPage(i) {
+    const el = ELEMENTS[i];
+    $("ph-name").textContent = el.name;
+    $("ph-obj").textContent = "📷 " + el.obj;
+    $("ph-cap").textContent = el.cap;
+
+    const figs = $("ph-figures");
+    figs.innerHTML = "";
+    const duo = el.imgs.length > 1;
+    if (duo) {
+        const wrap = document.createElement("div");
+        wrap.className = "duo";
+        figs.appendChild(wrap);
+    }
+    const target = duo ? figs.firstElementChild : figs;
+
+    el.imgs.forEach(im => {
+        const frame = document.createElement("div");
+        frame.className = "ph-frame";
+        frame.innerHTML =
+            '<div class="shimmer"></div>' +
+            '<div class="ph-fail">Foto konnte nicht geladen werden.<br>' +
+            '<a href="' + im.page + '" target="_blank" rel="noopener">Auf Wikimedia Commons ansehen →</a></div>';
+        const image = document.createElement("img");
+        image.alt = el.name + " im Alltag: " + el.obj;
+        image.loading = "eager";
+        image.src = im.url;
+        image.onload = () => { image.classList.add("loaded"); const s = frame.querySelector(".shimmer"); if (s) s.remove(); };
+        image.onerror = () => {
+            if (!image.dataset.fb) {
+                image.dataset.fb = "1";
+                image.src = "https://commons.wikimedia.org/wiki/Special:FilePath/" + encodeURIComponent(im.file);
+            } else {
+                const s = frame.querySelector(".shimmer"); if (s) s.remove();
+                frame.querySelector(".ph-fail").style.display = "block";
+                image.style.display = "none";
+            }
+        };
+        frame.appendChild(image);
+        target.appendChild(frame);
+    });
+
+    $("ph-src").innerHTML = el.imgs.map(im =>
+        "Foto: <a href='" + im.page + "' target='_blank' rel='noopener'>" + im.file + "</a>" +
+        " · " + im.author + " · <span class='lic'>Lizenz: " + im.lic + "</span> · Quelle: Wikimedia Commons"
+    ).join("<br>");
+}
+
+function goFacts(i)  { location.hash = "#facts=" + ELEMENTS[i].sym; }
+function goDetail(i, n) { location.hash = "#fact=" + ELEMENTS[i].sym + "-" + n; }
+function goPhoto(i)  { location.hash = "#photo=" + ELEMENTS[i].sym; }
+$("btn-facts").onclick = () => { if (current !== null) goFacts(current); };
+
+function route() {
+    const m = location.hash.match(/^#(facts|fact|photo)=([A-Za-z]+)(?:-(\d+))?$/);
+    hidePages();
+    if (!m) return;
+    const i = ELEMENTS.findIndex(e => e.sym.toLowerCase() === m[2].toLowerCase());
+    if (i < 0) return;
+    if (m[1] === "facts") { openFactsPage(i); $("page-facts").classList.add("show"); }
+    else if (m[1] === "fact") {
+        const n = +m[3];
+        if (n === 1 || n === 2) { openFactDetail(i, n); $("page-detail").classList.add("show"); }
+        else { openFactsPage(i); $("page-facts").classList.add("show"); }
+    }
+    else { openPhotoPage(i); $("page-photo").classList.add("show"); }
+    window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", route);
+
+/* ---------- Tastatur ---------- */
+document.addEventListener("keydown", ev => {
+    const pageOpen = ["page-facts", "page-detail", "page-photo"].some(id => $(id).classList.contains("show"));
+    if (ev.key === "Escape") {
+        if (pageOpen && location.hash) history.back();
+        else if (overlay.classList.contains("open")) closeInfo();
+        else if (location.hash) history.back();
+    }
+    if (overlay.classList.contains("open") && !pageOpen) {
+        if (ev.key === "ArrowRight") nextElement();
+        if (ev.key === "ArrowLeft") prevElement();
+    }
+});
+
+/* ---------- Start (unterstützt Direktlinks wie #fact=H-1) ---------- */
+route();
+</script>
+</body>
+</html>
